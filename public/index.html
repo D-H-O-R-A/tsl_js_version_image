@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>American Sign Language Analysis</title>
+
+    <link rel="shortcut icon" href="./img/logo.png" type="image/x-icon">
+    <link rel="apple-touch-icon" href="./img/logo.png">
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-analytics.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.8/firebase-storage.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.6.5/firebase-auth.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.js" integrity="sha256-eKhayi8LEQwp4NKxN+CfCh+3qOVUtJn3QNZ0TciWLP4=" crossorigin="anonymous"></script>
+   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+   <link rel="stylesheet" href="./styles.css">
+   <script src="./script.js" defer></script>
+</head>
+<body>
+
+    <div class="select todetect">
+        <center>
+            <h1>Choose one of the options below</h1>
+            <p>Turkish and American Sign Language Detector Made with AI and ML Technology.</p>
+            <div>
+                <button onclick="set('container-image')" onselect="set('container-image')">
+                    <img src="./img/icons8-imagem-96.png" alt="">
+                    <p>Detect Image</p>
+                    <span>Sign language detection in images</span>
+                </button>
+                <button onclick="set('container-video4s')" onselect="set('container-video4s')">
+                    <img src="./img/icons8-vídeo-96.png" alt="">
+                    <p>Detect Video 10s</p>
+                    <span>Sign language detection in video recorded from the browser camera lasting 10s</span>
+                </button>
+                <button onclick="set('container-realtime')" onselect="set('container-realtime')">
+                    <img src="./img/icons8-tempo-96.png" alt="">
+                    <p>Detect Real-time</p>
+                    <span>Real-time high-precision sign language detection (unavailable for now)</span>
+                </button>
+                <button onclick="set('container-treinamento')" onselect="set('container-treinamento')">
+                    <img src="./img/icons8-treinamento-96.png" alt="">
+                    <p>Train Data</p>
+                    <span>Data training center focused on expanding and improving the neural network database and AI learning, increasing processing capacity and improving the accuracy of artificial intelligence models.</span>
+                </button>
+            </div>
+        </center>
+    </div>
+    <div class="container-video4s todetect">
+        <h1>Record a Video</h1>
+        <p>Click "Start" to record a 4-second video and submit for analysis</p>
+        
+        <video id="video" autoplay muted></video>
+        <canvas id="canvas" style="display:none;"></canvas>
+        
+        <button id="startButton" onclick="detectVideo4sStart()" onselect="detectVideo4sStart()">Initialize Camera</button>
+        <p id="statusMessage"></p>
+        
+        <div id="gifResult"></div>
+
+        <div id="aiResult">
+            <p></p>
+            <div>
+                <p>Is this result correct?</p>
+                <div>
+                    <button id="yess" onclick="yes('gif','gif')" onselect="yes('gif','gif')">Yes</button>
+                    <button onclick="no('gif','gif')" onselect="no('gif','gif')">No</button>
+                </div>
+            </div>
+        </div>
+
+        <div style="padding: 10px 0px;">
+            <p style="color: red;">If the AI ​​returns "I can't determine the specific sign being performed in the GIF." Try reshooting the video, see if you have a straight posture facing the camera and without other facial expressions, if the frame is from the waist up and if it is not going outside the frame. All of this can affect how the AI ​​interprets</p>
+        </div>
+    </div>
+
+    <div class="container-realtime todetect">
+        <h1>Real-time Detection</h1>
+        <p>Click "Start" to Real-time analysis</p>
+        
+        <canvas id="canvasRealtime"></canvas>
+        
+        <button id="startButtonRealtime" disabled>Unavailable</button>
+        <p id="statusMessageRealtime"></p>
+    </div>
+    
+    <div class="container-image todetect">
+        <h1>Analyze image</h1>
+        <p>Click "Upload" to send an image for review</p>
+        
+        <canvas id="canvasImageDetect" style="display:flex;"></canvas>
+        
+        <button id="startButtonImage" onclick="document.getElementById('fileInput').click()" onselect="document.getElementById('fileInput').click()">Upload Image</button>
+        <input type="file" id="fileInput" accept="image/png, image/jpg, image/jpeg, image/webp, image/gif" style="display: none;" onchange="imageUpload()" />
+
+        <div id="aiResultImage">
+            <p></p>
+            <div>
+                <p>Is this result correct?</p>
+                <div>
+                    <button id="yess" onclick="yes('image','image')" onselect="yes('image','image')">Yes</button>
+                    <button onclick="no('image','image')" onselect="no('image','image')">No</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container-treinamento todetect">
+        <center>
+            <h1>Training history</h1>
+            <p>With each new test, the AI ​​is trained and improved</p>
+            <div id="mainw">
+                
+            </div>
+        </center>
+    </div>
+
+    <button class="back" onclick="back()" onselect="back()">
+        <img src="./img/icons8-voltar-50.png" alt="">
+        <p>Back to Menu</p>
+    </button>
+</body>
+</html>
