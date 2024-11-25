@@ -413,7 +413,7 @@ async function poupUpselect(type,data,text){
 
 function imageUpload() {
     if (clickToUploadImage) {
-        Toast.fire("Image being analyzed, please wait...","","info")
+        Toast.fire("Image being analyzed, please wait...", "", "info");
         poupUpselect("image", imageBase64, "");
     } else {
         clickToUploadImage = true;
@@ -430,6 +430,7 @@ function imageUpload() {
                 // Salva a imagem em base64 em uma variável
                 imageBase64 = base64Image;
                 console.log("Imagem em Base64:", imageBase64); // Exibe no console para teste
+
                 // Adiciona a imagem como background ao canvas
                 const canvas = document.getElementById('canvasImageDetect');
                 const context = canvas.getContext('2d');
@@ -442,7 +443,15 @@ function imageUpload() {
 
                     // Desenha a imagem no canvas
                     context.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                    // Exibe as informações da imagem (tamanho e proporções)
+                    const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2); // Converte o tamanho para MB
+                    Toast.fire({
+                        icon: "info",
+                        title: `Image Uploaded: ${fileSizeMB} MB, Dimensions: ${img.width}x${img.height}px`
+                    });
                 };
+
                 img.src = base64Image;
             };
 
@@ -461,6 +470,7 @@ function imageUpload() {
         $("#startButtonImage").attr("onselect", "imageUpload()");
     }
 }
+
 
 
 $(window).on("load",async ()=>{
