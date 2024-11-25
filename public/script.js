@@ -181,12 +181,14 @@ function setVideo(videoURL){
 
 async function sendToChatgpt(gif, details, type,idioma,is) {
     langIdioma=idioma;
+    Toast.fire("Image sent to AI, please wait...","","info")
     var airesult = await analyzeWithOpenAI(gif,details,type,idioma,is)
     console.log(airesult)
     if(airesult.error!= undefined){
         Toast.fire("Error",airesult.error,"error")
         // sendToChatgpt(gif,details,type,idioma,)
     }else{
+        Toast.fire("Image successfully analyzed by AI!","","success")
         setAfterLayout(type,airesult)
     }
 }
@@ -411,6 +413,7 @@ async function poupUpselect(type,data,text){
 
 function imageUpload() {
     if (clickToUploadImage) {
+        Toast.fire("Image being analyzed, please wait...","","info")
         poupUpselect("image", imageBase64, "");
     } else {
         clickToUploadImage = true;
@@ -427,7 +430,6 @@ function imageUpload() {
                 // Salva a imagem em base64 em uma variável
                 imageBase64 = base64Image;
                 console.log("Imagem em Base64:", imageBase64); // Exibe no console para teste
-
                 // Adiciona a imagem como background ao canvas
                 const canvas = document.getElementById('canvasImageDetect');
                 const context = canvas.getContext('2d');

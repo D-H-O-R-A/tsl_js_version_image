@@ -18,7 +18,12 @@ app.use(cors());
 app.use(express.static(path.join(__dirname, "public")));
 
 // Middleware para processar JSON no corpo da requisição
-app.use(express.json({ limit: "10mb" }));
+const MAX_REQUEST_SIZE_MB = 20; // Tamanho máximo em MB (definido pelo Express)
+const MAX_BASE64_SIZE = MAX_REQUEST_SIZE_MB * 1024 * 1024; // Convertendo para bytes
+
+app.use(express.json({ limit: `${MAX_REQUEST_SIZE_MB}mb` }));
+app.use(express.urlencoded({ limit: `${MAX_REQUEST_SIZE_MB}mb`, extended: true }));
+
 
 const openai = new OpenAI.OpenAI({
   apiKey: "sk-svcacct-30SHwEtRB7UOjYAKzmDqjbo9yd67ooEFajS6fJmyeP8heQTXaYuEBTeUB9-NCT3BlbkFJ0JD7UjXi56gI8J4cUAaz9HgE4tlnr3XtqsQjbkFY9l7_WGiNE4V-mh2Dd_uAA"
@@ -104,49 +109,53 @@ app.get("/convert-video-to-gif", async (req, res) => {
 
 // Rota para análise de GIF em formato Base64
 app.post("/analyze-gif", async (req, res) => {
-  let { base64Gif, details = "", lang = "American", type = "gif", is = false } = req.body;
-
-  if (!base64Gif) {
-    return res.status(400).send("O GIF em Base64 é necessário.");
-  }
-
-  const MAX_BASE64_SIZE = 10 * 1024 * 1024; // 10 MB, ajuste conforme necessário
-  if (base64Gif.length > MAX_BASE64_SIZE) {
-    return res.status(400).send("The GIF is too large. Please upload a smaller file.");
-  }
-
-  try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: is
-                ? details
-                : `Can you identify the sign being made in this ${type}? The sign is part of ${lang} Sign Language. Please analyze the image carefully, focusing on the hand shapes, facial expressions, and any other relevant contextual elements. Provide specific details about the sign, including its meaning and any cultural context that may apply. Additionally, explain your reasoning and the observations that led you to your conclusion, with as much detail as possible. This information will help enhance your understanding for future reference. If "Details" have any value, it is because your analysis is wrong. Details: ${details}`
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: base64Gif
+    let { base64Gif, details = "", lang = "American", type = "gif", is = false } = req.body;
+  
+    if (!base64Gif) {
+      return res.status(400).send("The Image/GIF in Base64 format is required.");
+    }
+  
+    const gifSizeInBytes = Buffer.byteLength(base64Gif, 'utf-8'); // Tamanho do GIF em bytes
+  
+    if (gifSizeInBytes > MAX_BASE64_SIZE) {
+      const gifSizeMB = (gifSizeInBytes / (1024 * 1024)).toFixed(2); // Converte o tamanho para MB
+      return res.status(400).send(
+        `The Image/GIF is too large. Your Image/GIF size is ${gifSizeMB} MB, while the server accepts a maximum size of ${MAX_REQUEST_SIZE_MB} MB. Please upload a smaller file.`
+      );
+    }
+  
+    try {
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: is
+                  ? details
+                  : `Can you identify the sign being made in this ${type}? The sign is part of ${lang} Sign Language. Please analyze the image carefully, focusing on the hand shapes, facial expressions, and any other relevant contextual elements. Provide specific details about the sign, including its meaning and any cultural context that may apply. Additionally, explain your reasoning and the observations that led you to your conclusion, with as much detail as possible. This information will help enhance your understanding for future reference. If "Details" have any value, it is because your analysis is wrong. Details: ${details}`
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: base64Gif
+                }
               }
-            }
-          ]
-        }
-      ]
-    });
-
-    const response = completion.choices[0].message;
-
-    res.json(response);
-  } catch (error) {
-    console.error("Erro ao chamar a API do OpenAI:", error);
-    res.status(500).send("Error processing request.");
-  }
-});
+            ]
+          }
+        ]
+      });
+  
+      const response = completion.choices[0].message;
+  
+      res.json(response);
+    } catch (error) {
+      console.error("Error calling OpenAI API:", error);
+      res.status(500).send("Error processing request.");
+    }
+  });
 
 function saveHistory(data) {
   const historyPath = path.join(__dirname, "history.json");
