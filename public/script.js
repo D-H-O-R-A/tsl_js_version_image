@@ -25,7 +25,7 @@ let countdownDisplay = document.createElement("div");
 countdownDisplay.style.fontSize = "24px";
 countdownDisplay.style.marginTop = "10px";
 document.querySelector(".container-video4s").appendChild(countdownDisplay);
-let recordingTimeMS = 4000; // Tempo de gravação em milissegundos (5 segundos)
+let recordingTimeMS = 10000; // Tempo de gravação em milissegundos (5 segundos)
 let isCameraInitialized = false; // Flag para verificar se a câmera foi inicializada
 let isclickedstartbefore = false;
 let data = [];
@@ -119,10 +119,11 @@ async function uploadVideoToFirebase(blob) {
 }
 
 // Evento de clique no botão de início
-function detectVideo4sStart(){
-    document.getElementById("aiResult").style.display="none";
+function detectVideo4sStart() {
+    document.getElementById("aiResult").style.display = "none";
+
     if (!isCameraInitialized) {
-        // Inicializa a câmera
+        // Tenta inicializar a câmera
         navigator.mediaDevices.getUserMedia({ video: true, audio: false })
             .then(stream => {
                 video.srcObject = stream;
@@ -131,8 +132,15 @@ function detectVideo4sStart(){
                 statusMessage.textContent = "Camera initialized. Click 'Start' to record.";
             })
             .catch(err => {
-                console.error("Erro ao acessar a câmera: ", err);
-                statusMessage.textContent = "Error accessing the camera.";
+                console.error("Error accessing the camera: ", err);
+
+                if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+                    statusMessage.textContent = "Camera access denied. Please click the button again to grant access.";
+                } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
+                    statusMessage.textContent = "No camera found. Please connect a camera and try again.";
+                } else {
+                    statusMessage.textContent = "An error occurred while accessing the camera. Please try again.";
+                }
             });
     } else {
         // Começa a gravação
@@ -141,11 +149,11 @@ function detectVideo4sStart(){
                 let recordedBlob = new Blob(recordedChunks, { type: "video/mp4" });
                 video.src = URL.createObjectURL(recordedBlob);
 
-                // Exibir vídeo gravado no elemento de vídeo
+                // Exibe vídeo gravado no elemento de vídeo
                 await uploadVideoToFirebase(recordedBlob);
             })
             .catch(err => {
-                console.error("Erro: ", err);
+                console.error("Error recording video: ", err);
                 statusMessage.textContent = "Error recording video.";
                 countdownDisplay.textContent = ""; // Limpa o contador em caso de erro
             });
@@ -313,7 +321,7 @@ async function analyzeWithOpenAI(videoUrl, details, type, idioma,is) {
         return result; // Retorna o resultado da análise
     } catch (error) {
         console.error('Erro:', error);
-        return { error: 'Falha ao analisar o GIF. Tente novamente mais tarde.' };
+        return { error: 'Failed to parse GIF. Please try again later.' };
     }
 }
 
@@ -402,48 +410,56 @@ async function poupUpselect(type,data,text){
 }
 
 function imageUpload() {
-    if(clickToUploadImage){
-        poupUpselect("image",imageBase64,"")
-    }else{
-        clickToUploadImage=true;
+    if (clickToUploadImage) {
+        poupUpselect("image", imageBase64, "");
+    } else {
+        clickToUploadImage = true;
         const fileInput = document.getElementById('fileInput');
         const file = fileInput.files[0];
-    
+
         if (file) {
             const reader = new FileReader();
-            
-            reader.onload = function(event) {
+
+            reader.onload = function (event) {
                 // Obtem a imagem em base64
                 const base64Image = event.target.result;
-                
+
                 // Salva a imagem em base64 em uma variável
                 imageBase64 = base64Image;
                 console.log("Imagem em Base64:", imageBase64); // Exibe no console para teste
-    
+
                 // Adiciona a imagem como background ao canvas
                 const canvas = document.getElementById('canvasImageDetect');
                 const context = canvas.getContext('2d');
                 const img = new Image();
-                
-                img.onload = function() {
+
+                img.onload = function () {
                     // Ajusta o canvas ao tamanho da imagem
                     canvas.width = img.width;
                     canvas.height = img.height;
-                    
+
                     // Desenha a imagem no canvas
                     context.drawImage(img, 0, 0, canvas.width, canvas.height);
                 };
                 img.src = base64Image;
             };
-            
+
             // Lê o arquivo selecionado como Data URL
             reader.readAsDataURL(file);
+        } else {
+            // Caso o usuário não tenha selecionado o arquivo
+            Toast.fire({
+                icon: "warning",
+                title: "No file selected. Please click the button again to allow the upload."
+            });
         }
-        $("#startButtonImage").text("Submit for analysis")
-        $("#startButtonImage").attr("onclick","imageUpload()")
-        $("#startButtonImage").attr("onselect","imageUpload()")
+
+        $("#startButtonImage").text("Submit for analysis");
+        $("#startButtonImage").attr("onclick", "imageUpload()");
+        $("#startButtonImage").attr("onselect", "imageUpload()");
     }
 }
+
 
 $(window).on("load",async ()=>{
     const jsonData = await getHistory()
