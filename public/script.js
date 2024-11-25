@@ -321,7 +321,7 @@ async function analyzeWithOpenAI(videoUrl, details, type, idioma,is) {
         return result; // Retorna o resultado da análise
     } catch (error) {
         console.error('Erro:', error);
-        return { error: 'Failed to parse GIF. Please try again later.' };
+        return { error: 'Failed to parse GIF. Please try again later.'+error };
     }
 }
 
