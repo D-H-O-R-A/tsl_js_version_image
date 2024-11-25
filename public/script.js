@@ -82,41 +82,97 @@ function startRecording(stream) {
 }
 
 // Função para upload do vídeo para o Firebase
-async function uploadVideoToFirebase(blob) {
-    const storageRef = storage.ref();
-    const videoRef = storageRef.child(`videos/${Date.now()}.mp4`); // Cria um caminho único para o vídeo
+async function uploadVideoToFirebase(blob, is) {
+    if (is) {
+        // Vídeo
+        const storageRef = storage.ref();
+        const videoRef = storageRef.child(`videos/${Date.now()}.mp4`); // Cria um caminho único para o vídeo
 
-    const uploadTask = videoRef.put(blob);
+        const uploadTask = videoRef.put(blob);
 
-    // Monitorar o progresso do upload
-    await uploadTask.on("state_changed", 
-        (snapshot) => {
-            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+        // Monitorar o progresso do upload
+        await uploadTask.on(
+            "state_changed",
+            (snapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                Toast.fire({
+                    icon: "info",
+                    title: `Loading: ${progress.toFixed(2)}%`,
+                });
+            },
+            (error) => {
+                console.error("Erro ao fazer upload: ", error);
+                statusMessage.textContent = "Error uploading.";
+            },
+            async () => {
+                const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+                Toast.fire({
+                    icon: "success",
+                    title: "Upload completed!",
+                });
+                setVideo(downloadURL);
+                Toast.fire("Converting to GIF...", "", "warning");
+                var gif = await sendVideoToFFMpeg(downloadURL);
+                videogifurl = gif;
+                console.log(gif);
+                Toast.fire("Submitting for AI analysis, please wait...", "", "info");
+                poupUpselect("gif", gif, "");
+            }
+        );
+    } else {
+        // Imagem
+        const fileInput = document.getElementById("fileInput");
+        const file = fileInput.files[0];
+
+        if (file) {
+            const fileName = `${Date.now()}.${file.name.split(".").pop()}`; // Nome único baseado no timestamp
+            const storageRef = storage.ref();
+            const imageRef = storageRef.child(`images/${fileName}`); // Caminho para salvar a imagem
+
+            const uploadTask = imageRef.put(file);
+
+            // Monitorar o progresso do upload
+            await uploadTask.on(
+                "state_changed",
+                (snapshot) => {
+                    const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                    Toast.fire({
+                        icon: "info",
+                        title: `Uploading image: ${progress.toFixed(2)}%`,
+                    });
+                },
+                (error) => {
+                    console.error("Error uploading image: ", error);
+                    Toast.fire({
+                        icon: "error",
+                        title: "Error uploading image.",
+                    });
+                },
+                async () => {
+                    const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+                    Toast.fire({
+                        icon: "success",
+                        title: "Image upload completed!",
+                    });
+                    imageBase64 = downloadURL
+                    // Exibe URL da imagem para referência
+                    console.log("Image URL:", downloadURL);
+
+                    // Chamar a função de análise ou outra ação necessária
+                    Toast.fire("Submitting image for AI analysis, please wait...", "", "info");
+                    poupUpselect("image", downloadURL, "");
+                }
+            );
+        } else {
+            // Nenhuma imagem foi selecionada
             Toast.fire({
-                icon: "info",
-                title: `Loading: ${progress.toFixed(2)}%`
+                icon: "warning",
+                title: "No image selected. Please try again.",
             });
-        }, 
-        (error) => {
-            console.error("Erro ao fazer upload: ", error);
-            statusMessage.textContent = "Error uploading.";
-        }, 
-        async () => {
-            const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
-            Toast.fire({
-                icon: "success",
-                title: "Upload completed!"
-            });
-            setVideo(downloadURL)
-            Toast.fire("Converting to GIF...","","warning")
-            var gif = await sendVideoToFFMpeg(downloadURL);
-            videogifurl=gif;
-            console.log(gif)
-            Toast.fire("Submitting for AI analysis, please wait...","","info")
-            poupUpselect("gif",gif,"")
         }
-    );
+    }
 }
+
 
 // Evento de clique no botão de início
 function detectVideo4sStart() {
@@ -150,7 +206,7 @@ function detectVideo4sStart() {
                 video.src = URL.createObjectURL(recordedBlob);
 
                 // Exibe vídeo gravado no elemento de vídeo
-                await uploadVideoToFirebase(recordedBlob);
+                await uploadVideoToFirebase(recordedBlob, true);
             })
             .catch(err => {
                 console.error("Error recording video: ", err);
@@ -414,7 +470,7 @@ async function poupUpselect(type,data,text){
 function imageUpload() {
     if (clickToUploadImage) {
         Toast.fire("Image being analyzed, please wait...", "", "info");
-        poupUpselect("image", imageBase64, "");
+        uploadVideoToFirebase( imageBase64, false);
     } else {
         clickToUploadImage = true;
         const fileInput = document.getElementById('fileInput');
